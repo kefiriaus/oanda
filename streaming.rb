@@ -9,6 +9,8 @@ class StreamingForexPrices
         @account_id = account_id
         @instruments = instruments
         @events_queue = events_queue
+        @cur_bid = ''
+        @cur_ask = ''
     end
 
     def stream_to_queue
@@ -44,11 +46,12 @@ class StreamingForexPrices
                             p "NOT JSON: #{chunk}"
                         end
                         
-                        if msg.has_key? "tick"
+                        if msg.has_key? "tick" or msg.has_key? "instrument"
                             puts msg
 
                             tick = msg["tick"]
                             instrument, time, bid, ask = tick["instrument"], tick["time"], tick["bid"], tick["ask"]
+                            @cur_bid, @cur_ask = bid, ask
                             tev = TickEvent.new(instrument, time, bid, ask)
                             @events_queue.push tev
                         end

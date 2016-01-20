@@ -1,20 +1,26 @@
 require_relative 'event'
 
-class TestRandomStrategy
-    def initialize(instrument, units, events)
+class TestStrategy
+    def initialize(instrument, events)
         @instrument = instrument
-        @units = units
         @events = events
         @ticks = 0
+        @invested = false
     end
 
     def calculate_signals(event)
         if event.type == 'TICK'
             @ticks += 1
             if @ticks % 5 == 0
-                side = [:buy, :sell].sample
-                order = OrderEvent.new(@instrument, @units, 'market', side)
-                @events.push order
+                if @invested == false
+                    signal = SignalEvent.new(@instrument, 'market', 'buy')
+                    @events.push signal
+                    @invested = true
+                else
+                    signal = SignalEvent.new(@instrument, 'market', 'sell')
+                    @events.push signal
+                    @invested = false
+                end
             end
         end
     end
