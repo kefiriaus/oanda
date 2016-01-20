@@ -64,4 +64,67 @@ class Portfolio
             false
         end
     end
+
+    def execute_signal(signal_event)
+        side = signal_event.side
+        market = signal_event.instrument
+        units = @trade_units.to_i
+
+        # Check side for correct bid/ask prices
+        add_price = @ticker.cur_ask
+        remove_price = @ticker.cur_bid
+        exposure = units.to_f
+
+        # If a position exists add or remove units
+        if @positions.has_key? market:
+            ps = @positions[market]
+            # Check if the sides equal
+            if side == ps.side
+                # Add to the position
+                add_position_units(
+                    market, units, exposure,
+                    add_price, remove_price
+                )
+            else
+                # Check if the units close out the position
+                if units == ps.units
+                    # Close the position
+                    close_position(market, remove_price)
+                    order = OrderEvent.new(market, units, "market", "sell")
+                    @events.push(order)
+                elsif units < ps.units
+                    # Remove from the position
+                    remove_position_units(
+                        market, units, remove_price
+                    )
+                else # units > ps.units
+                    # Close the position and add a new one with
+                    # additional units of opposite side
+                    new_units = units - ps.units
+                    close_position(market, remove_price)
+
+                    if side == "buy"
+                        new_side = "sell"
+                    else
+                        new_side = "sell"
+                        new_exposure = units.to_f
+                        add_new_position(
+                            new_side, market, new_units,
+                            new_exposure, add_price, remove_price
+                        )
+                    end
+                end
+            end
+            # If there is no position, create one
+        else
+            add_new_position(
+                side, market, units, exposure,
+                add_price, remove_price
+            )
+            order = OrderEvent.new(market, units, "market", "buy")
+            @events.push(order)
+        end
+
+        puts "Balance: %0.2f" % @balance
+    end
 end
